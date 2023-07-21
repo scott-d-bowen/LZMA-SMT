@@ -48,13 +48,22 @@ let paddDiffData = Data(repeating: 0x00, count: paddDiff);
 // TO PAD, OR NOT TO PAD:
 //  * That is why we commment out the line below...
 //  * If we do this it'll throw (catch below), but I may know a solution already...
-// paddedLZMACompData.append(paddDiffData);
+paddedLZMACompData.append(paddDiffData);
 
 // Visually confirm that MOD 16 leaves 0 remainder: (size + true or false).
 print(paddedLZMACompData, "; Padded:", paddedLZMACompData.count % 16 == 0);
 
 // Then we reverse the process, and check if the data matches!
 do {
+    // DE-PAD LOOP: (THIS IS VERY BASIC AND HAS NOT BEEN TESTED MUCH...):
+    // LZMA blocks end in: 0x0000_595a or at the very least 0x595a, so it
+    // is actually fairly safe to do this! ;-)
+    for _ in 0..<16 {
+        if paddedLZMACompData.last! == 0x00 {
+            paddedLZMACompData.removeLast();
+        }
+    }
+    // THEN WE ARE GOOD [AGAIN]:
     let uncompTry = try Data(referencing: (paddedLZMACompData as NSData).decompressed(using: .lzma));
     print(uncompTry);
     print("matchesByteForByte:", matchesByteForByte(GLOBAL_DATA, uncompTry))
@@ -70,7 +79,7 @@ func matchesByteForByte(_ inputA: Data, _ inputB: Data) -> Bool {
                             // lengths are mismatched.
     }
     for cmp in 0..<inputA.count {
-        if !(inputA[cmp] == inputB[cmp]) {
+        if !(inputA[cmp] == inputB[cmp]) { // if !()... means IF 'NOT!':
             return false;   // This will 'break' out of the loop
                             // without using the 'break' keyword.
         }
